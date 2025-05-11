@@ -4,32 +4,70 @@ using Find24Avalonia.Models;
 using System.Linq;
 using System;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Ursa.Controls;
+using System.Threading.Tasks;
+using Avalonia.Controls;
 
 namespace Find24Avalonia.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
     public static string Title => "Calculator for 24";
-    public string Input { get; set; } = string.Empty;
     [ObservableProperty]
-    public string result = string.Empty;
-    public ICommand Command { get; set; }
+    public string _input = string.Empty;
+    [ObservableProperty]
+    public string _result = string.Empty;
 
-    public MainViewModel()
+    public TopLevel? _topLevel;
+
+    public MainViewModel(TopLevel? topLevel)
     {
-        Solution solution = new Solution();
-        RelayCommand relayCommand = new RelayCommand(() =>
+        _topLevel = topLevel;
+    }
+
+    [RelayCommand]
+    public async Task Calculate()
+    {
+        Result = string.Empty;
+
+        string? stinger = Helper.GetStinger(Input);
+
+        var result = new Solution().Find24Solutions(Array.ConvertAll(Input.Split(' '), int.Parse));
+        if (result.Count == 0)
         {
-            var result = solution.Find24Solutions(Array.ConvertAll(Input.Split(' '),int.Parse));
-            if (result.Count == 0)
-            {
-                Result = "No solution";
-            }
-            else
-            {
-                Result = "Solution Found:\n" + string.Join("\n", result.Distinct());
-            }
-        });
-        Command = relayCommand;
+            Result += "No solution";
+        }
+        else
+        {
+            Result += string.Join("\n", result.Distinct());
+        }
+
+        
+        await MessageBox.ShowOverlayAsync(
+            Result, 
+            stinger is null ? "Solution Found:" : stinger);
+
+        
+    }
+
+    [RelayCommand]
+    public void Enter(string number)
+    {
+        if (number != "back")
+        {
+            Input += number;
+        }
+        else if (Input.Length > 0)
+        {
+            Input = Input[..^1];
+        }
+    }
+
+    [RelayCommand]
+    public async Task OpenSourceAsync()
+    {
+        if (_topLevel is null) return;
+        var launcher = _topLevel.Launcher;
+        await launcher.LaunchUriAsync(new Uri("https://github.com/SoarZhang-214/Find24Avalonia"));
     }
 }
